@@ -1,0 +1,26 @@
+name: Crypto Bot 24/7
+
+on:
+  schedule:
+    - cron: '*/5 * * * *' # Запуск каждые 5 минут
+  workflow_dispatch: # Позволяет запустить вручную кнопкой
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.9'
+
+      - name: Install dependencies
+        run: pip install requests firebase-admin
+
+      - name: Run bot
+        run: python bot.py
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
