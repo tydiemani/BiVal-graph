@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8">
+    <title>Мой крипто инвест</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom"></script>
+    <link rel='stylesheet' href="style.css">
+  </head>
+  <body>
+    <h1>Бивалютный график v0.1</h1>
+    <div id="eth-graph"><canvas id=myChart></canvas></div>
+    <div class="controls">
+        <button id="buy-low">Купить дешево</button>
+        <button id="sell-high">Продать дорого</button>
+    </div>
+    <footer>&copy; tydie</footer>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+    <script src="script.js"></script>
+  </body>
+</html>

@@ -1,0 +1,50 @@
+body {background-color: #1a1a2e;
+      color:aliceblue;
+      font-family: sans-serif;
+}
+
+#eth-graph {
+    border: 2px dashed #8e44ad;
+    padding: 50px;
+    text-align: center;
+    margin-top: 20px;
+}
+
+button {
+    padding: 10px 20px;
+    cursor:pointer;
+    font-weight: Bold;
+    border: none;
+    border-radius: 5px;
+    margin: 10px;
+}
+
+#buy-low {
+    background-color: lightgreen;
+    color:black;
+}
+
+#sell-high{
+    background-color: lightcoral;
+    color: black;
+}
+
+.controls{
+    text-align: center;
+}
+
+#eth-graph {
+    width: 90%;        
+    max-width: 1200px;   
+    height: 500px;      
+    margin: 20px auto;   
+    background: #1e1e3f; 
+    padding: 20px;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+}
+
+canvas {
+    width: 100% !important;
+    height: 100% !important;
+}
