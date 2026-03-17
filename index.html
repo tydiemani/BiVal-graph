@@ -2,24 +2,43 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Бивалютный терминал v0.2</title>
+    <title>Бивалютный график v0.3</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@2.0.1"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
 </head>
 <body>
-    <div class="container">
-        <h1>Бивалютный график v0.2</h1>
-        <div class="chart-container">
-            <canvas id="myChart"></canvas>
+    <div class="main-container">
+        <div class="chart-section">
+            <canvas id="dualChart"></canvas>
         </div>
-        <div class="controls">
-            <button class="btn-buy">Купить дешево (Dual)</button>
-            <button class="btn-sell">Отменить ордер</button>
+
+        <div class="control-section">
+            <h2>Панель управления</h2>
+            
+            <div class="input-group">
+                <label>Тип сделки:</label>
+                <div class="radio-group">
+                    <label><input type="radio" name="type" value="buy" checked> Купить дешево</label>
+                    <label><input type="radio" name="type" value="sell"> Продать дорого</label>
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label for="strikePrice">Целевая цена (Страйк):</label>
+                <input type="number" id="strikePrice" placeholder="2300">
+            </div>
+
+            <div class="input-group">
+                <label for="expiryDate">Дата исполнения:</label>
+                <input type="datetime-local" id="expiryDate">
+            </div>
+
+            <button id="addOrderBtn">Добавить ордер</button>
+            <button id="clearOrdersBtn" class="btn-danger">Очистить историю</button>
+
+            <div id="status"></div>
         </div>
-        <div id="status-bar"></div>
     </div>
     <script src="script.js"></script>
 </body>
