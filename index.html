@@ -1,22 +1,26 @@
 <!DOCTYPE html>
 <html lang="ru">
-  <head>
+<head>
     <meta charset="UTF-8">
-    <title>Мой крипто инвест</title>
+    <title>Бивалютный терминал v0.2</title>
+    <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom"></script>
-    <link rel='stylesheet' href="style.css">
-  </head>
-  <body>
-    <h1>Бивалютный график v0.1</h1>
-    <div id="eth-graph"><canvas id=myChart></canvas></div>
-    <div class="controls">
-        <button id="buy-low">Купить дешево</button>
-        <button id="sell-high">Продать дорого</button>
-    </div>
-    <footer>&copy; tydie</footer>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@2.0.1"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>Бивалютный график v0.2</h1>
+        <div class="chart-container">
+            <canvas id="myChart"></canvas>
+        </div>
+        <div class="controls">
+            <button class="btn-buy">Купить дешево (Dual)</button>
+            <button class="btn-sell">Отменить ордер</button>
+        </div>
+        <div id="status-bar"></div>
+    </div>
     <script src="script.js"></script>
-  </body>
+</body>
 </html>
