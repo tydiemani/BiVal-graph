@@ -4,7 +4,7 @@ import json
 import os
 
 app = Flask(__name__)
-# Полная поддержка CORS для всех путей и доменов
+# Полная поддержка CORS для всех путей и доменов, чтобы избежать CORB/CORS ошибок
 CORS(app, resources={r"/*": {"origins": "*"}})
 
 DB_FILE = 'orders_db.json'
@@ -24,7 +24,7 @@ def save_db(data):
 
 @app.route('/orders', methods=['GET', 'POST', 'DELETE', 'OPTIONS'])
 def handle_orders():
-    # Ответ на предварительный запрос браузера (Preflight)
+    # Ответ на предварительный запрос браузера (Preflight), исправляет CORB
     if request.method == 'OPTIONS':
         return jsonify({"status": "ok"}), 200
         
@@ -43,6 +43,5 @@ def handle_orders():
         return jsonify({"status": "cleared"}), 200
 
 if __name__ == '__main__':
-    # Порт выставляется автоматически через Render
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
