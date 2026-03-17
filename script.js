@@ -1,5 +1,5 @@
 // URL твоего бэкенд сервера на Render (пока оставляем пустым)
-const API_URL = 'ТВОЙ_SERVER_URL'; 
+const API_URL = 'https://bival-graph.onrender.com'; 
 
 let orders = [];
 const ctx = document.getElementById('dualChart');
