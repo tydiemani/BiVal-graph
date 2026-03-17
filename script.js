@@ -1,137 +1,142 @@
-const firebaseConfig = {
-    apiKey: "AIzaSyB3S4lJ0Ru_MYfcNcqnAv1wbKEh2fVKPPU",
-    authDomain: "crypto-terminal-aac58.firebaseapp.com",
-    databaseURL: "https://crypto-terminal-aac58-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId: "crypto-terminal-aac58",
-    storageBucket: "crypto-terminal-aac58.firebasestorage.app",
-    messagingSenderId: "672546034356",
-    appId: "1:672546034356:web:ba4748a0da492dee72bde1"
-};
+// URL твоего бэкенд сервера на Render (пока оставляем пустым)
+const API_URL = 'ТВОЙ_SERVER_URL'; 
 
-firebase.initializeApp(firebaseConfig);
-const database = firebase.database();
-const ctx = document.getElementById('myChart');
+let orders = [];
+const ctx = document.getElementById('dualChart');
 
-// Инициализация графика
+// Инициализация графика с улучшенным масштабом по оси X (time)
 const chart = new Chart(ctx, {
     type: 'line',
-    data: { 
-        labels: [], 
-        datasets: [{ 
-            label: 'ETH Price', 
-            data: [], 
-            borderColor: '#00ff88', 
-            backgroundColor: 'rgba(0, 255, 136, 0.1)',
-            fill: true,
-            tension: 0.3
-        }] 
+    data: {
+        datasets: [] // Данные будем загружать динамически
     },
     options: {
         responsive: true,
         maintainAspectRatio: false,
-        plugins: {
-            annotation: {
-                annotations: {
-                    orderLine: { // Горизонталь (Цена)
-                        type: 'line', yMin: null, yMax: null,
-                        borderColor: '#7dff00', borderWidth: 2, borderDash: [6, 6],
-                        label: { display: false, position: 'end', backgroundColor: 'rgba(0,0,0,0.8)' }
-                    },
-                    expiryLine: { // Вертикаль (Время)
-                        type: 'line', xMin: null, xMax: null,
-                        borderColor: '#ff4444', borderWidth: 2, borderDash: [3, 3],
-                        label: { display: false, content: 'Экспирация', position: 'start', backgroundColor: 'rgba(255, 68, 68, 0.8)' }
-                    }
-                }
+        scales: {
+            x: {
+                type: 'time', // Важно! Ость X теперь работает со временем
+                time: {
+                    unit: 'minute',
+                    displayFormats: { minute: 'HH:mm' }
+                },
+                title: { display: true, text: 'Время' },
+                grid: { color: 'rgba(255, 255, 255, 0.05)' }
+            },
+            y: {
+                title: { display: true, text: 'Цена ETH' },
+                grid: { color: 'rgba(255, 255, 255, 0.05)' }
             }
         },
-        scales: { y: { beginAtZero: false } }
-    }
-});
-
-// ЛОГИКА ПРОВЕРКИ РЕЗУЛЬТАТА
-function checkTradeResult(currentPrice, orderData) {
-    const now = new Date().toLocaleTimeString();
-    
-    // Если текущее время совпало или перевалило за время экспирации
-    if (orderData && now >= orderData.expiryTime) {
-        let message = "";
-        if (currentPrice <= orderData.price) {
-            message = `🎯 Сделка закрыта: Вы купили ETH по ${orderData.price}! (Цена упала)`;
-        } else {
-            message = `💰 Сделка закрыта: Вы остались в USDT + % доходности! (Цена выше страйка)`;
+        plugins: {
+            legend: { display: false }
         }
-        
-        alert(message);
-        database.ref('activeOrder').set(null); // Сбрасываем ордер
+    }
+});
+
+// ФУНКЦИИ ДЛЯ РАБОТЫ С СЕРВЕРОМ
+
+// 1. Загрузить все ордера из базы
+async function loadOrders() {
+    if (!API_URL) return;
+    try {
+        updateStatus('Загрузка сделок...');
+        const response = await fetch(`${API_URL}/orders`);
+        orders = await response.json();
+        updateChart();
+        updateStatus(`Загружено ${orders.length} сделок из базы.`);
+    } catch (error) {
+        updateStatus('Ошибка загрузки данных с сервера.');
+        console.error(error);
     }
 }
 
-// СЛУШАЕМ ЦЕНЫ
-database.ref('history').limitToLast(40).on('value', (snapshot) => {
-    const data = snapshot.val();
-    if (!data) return;
-
-    chart.data.labels = [];
-    chart.data.datasets[0].data = [];
-
-    let lastPrice = 0;
-    for (let id in data) {
-        chart.data.labels.push(data[id].time);
-        chart.data.datasets[0].data.push(data[id].price);
-        lastPrice = data[id].price;
+// 2. Добавить новый ордер на сервер
+async function addOrderToServer(orderData) {
+    if (!API_URL) {
+        // Если сервера нет, сохраняем локально (для теста)
+        orders.push(orderData);
+        updateChart();
+        return;
     }
-    chart.update();
-
-    // Проверяем результат, если есть активный ордер
-    database.ref('activeOrder').once('value', (snap) => {
-        const order = snap.val();
-        if (order) checkTradeResult(lastPrice, order);
-    });
-});
-
-// СЛУШАЕМ ОРДЕР (Отрисовка линий)
-database.ref('activeOrder').on('value', (snapshot) => {
-    const order = snapshot.val();
-    const ann = chart.options.plugins.annotation.annotations;
-
-    if (order) {
-        ann.orderLine.yMin = ann.orderLine.yMax = order.price;
-        ann.orderLine.label.display = true;
-        ann.orderLine.label.content = `Страйк: ${order.price}`;
-
-        ann.expiryLine.xMin = ann.expiryLine.xMax = order.expiryTime;
-        ann.expiryLine.label.display = true;
-    } else {
-        ann.orderLine.yMin = ann.orderLine.label.display = false;
-        ann.expiryLine.xMin = ann.expiryLine.label.display = false;
-    }
-    chart.update();
-});
-
-// КНОПКИ
-document.querySelector('.btn-buy').onclick = async () => {
-    const price = prompt("Цена страйка (Strike Price):", chart.data.datasets[0].data.slice(-1)[0]);
-    const mins = prompt("Срок сделки (через сколько минут):", "5");
-
-    if (price && mins) {
-        const expiryDate = new Date(Date.now() + parseInt(mins) * 60000);
-        database.ref('activeOrder').set({
-            price: parseFloat(price),
-            expiryTime: expiryDate.toLocaleTimeString()
+    try {
+        updateStatus('Сохранение сделки на сервере...');
+        await fetch(`${API_URL}/orders`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(orderData)
         });
+        loadOrders(); // Перезагружаем все данные
+    } catch (error) {
+        updateStatus('Ошибка сохранения сделки.');
     }
-};
-
-document.querySelector('.btn-sell').onclick = () => {
-    if(confirm("Отменить текущий ордер?")) database.ref('activeOrder').set(null);
-};
-
-// Запись в базу ( Bybit -> Firebase )
-async function updatePrice() {
-    const r = await fetch("https://api.bybit.com/v5/market/tickers?category=spot&symbol=ETHUSDT");
-    const d = await r.json();
-    const p = parseFloat(d.result.list[0].lastPrice);
-    database.ref('history/' + Date.now()).set({ price: p, time: new Date().toLocaleTimeString() });
 }
-setInterval(updatePrice, 5000);
+
+// 3. Очистить всю историю на сервере
+async function clearHistoryOnServer() {
+    if (!API_URL || !confirm('Точно очистить всю историю сделок?')) return;
+    try {
+        await fetch(`${API_URL}/orders`, { method: 'DELETE' });
+        loadOrders();
+    } catch (error) {
+        updateStatus('Ошибка очистки истории.');
+    }
+}
+
+// ФУНКЦИИ ОТРИСОВКИ
+
+function updateChart() {
+    const datasets = orders.map(order => {
+        const start = new Date(order.timestamp).getTime();
+        const end = new Date(order.expiryDate).getTime();
+        const color = order.type === 'buy' ? '#00ff88' : '#ff4444'; // Зеленый для покупки, красный для продажи
+
+        return {
+            label: `${order.type.toUpperCase()}: ${order.strikePrice}`,
+            data: [
+                { x: start, y: order.strikePrice },
+                { x: end, y: order.strikePrice }
+            ],
+            borderColor: color,
+            borderWidth: 2,
+            borderDash: [6, 6], // Делаем пунктир
+            pointRadius: 0, // Скрываем точки
+            fill: false,
+            tension: 0 // Прямая линия
+        };
+    });
+
+    chart.data.datasets = datasets;
+    chart.update();
+}
+
+function updateStatus(msg) {
+    document.getElementById('status').innerText = msg;
+}
+
+// ОБРАБОТЧИКИ КНОПОК
+
+document.getElementById('addOrderBtn').onclick = () => {
+    const type = document.querySelector('input[name="type"]:checked').value;
+    const strikePrice = parseFloat(document.getElementById('strikePrice').value);
+    const expiryDate = document.getElementById('expiryDate').value;
+
+    if (!strikePrice || !expiryDate) {
+        alert('Пожалуйста, заполни цену и дату экспирации.');
+        return;
+    }
+
+    const orderData = {
+        timestamp: new Date().toISOString(), // Время создания (сейчас)
+        type: type,
+        strikePrice: strikePrice,
+        expiryDate: expiryDate
+    };
+
+    addOrderToServer(orderData);
+};
+
+document.getElementById('clearOrdersBtn').onclick = clearHistoryOnServer;
+
+// Стартовая загрузка при открытии страницы
+loadOrders();
