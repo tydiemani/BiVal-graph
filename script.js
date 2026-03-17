@@ -1,15 +1,13 @@
 const API_URL = 'https://bival-graph.onrender.com'; 
 
 let orders = [];
-let priceHistory = []; // Для хранения реальных цен
+let priceHistory = []; 
 const ctx = document.getElementById('dualChart');
 
 // Инициализация графика
 const chart = new Chart(ctx, {
     type: 'line',
-    data: {
-        datasets: [] 
-    },
+    data: { datasets: [] },
     options: {
         responsive: true,
         maintainAspectRatio: false,
@@ -26,9 +24,7 @@ const chart = new Chart(ctx, {
                 beginAtZero: false, 
                 grid: { color: 'rgba(255, 255, 255, 0.05)' },
                 ticks: {
-                    callback: function(value) {
-                        return '$' + value;
-                    }
+                    callback: (value) => '$' + value
                 }
             }
         },
@@ -38,21 +34,21 @@ const chart = new Chart(ctx, {
     }
 });
 
-// 1. Загрузка ордеров
+// 1. Загрузка ордеров с сервера
 async function loadOrders() {
     try {
-        updateStatus('Загрузка данных...');
-        const response = await fetch(`${API_URL}/orders`);
+        updateStatus('Синхронизация...');
+        const response = await fetch(`${API_URL}/orders`, { mode: 'cors' });
         orders = await response.json();
         updateChart();
-        updateStatus(`Загружено ${orders.length} сделок.`);
+        updateStatus(`Активно сделок: ${orders.length}`);
     } catch (error) {
-        updateStatus('Ошибка связи с сервером.');
-        console.error(error);
+        updateStatus('Сервер не отвечает.');
+        console.error('Ошибка загрузки:', error);
     }
 }
 
-// 2. Получение текущей цены с Bybit (чтобы видеть рынок)
+// 2. Живая цена с Bybit
 async function fetchCurrentPrice() {
     try {
         const response = await fetch("https://api.bybit.com/v5/market/tickers?category=spot&symbol=ETHUSDT");
@@ -60,21 +56,20 @@ async function fetchCurrentPrice() {
         const currentPrice = parseFloat(result.result.list[0].lastPrice);
         const now = Date.now();
 
-        // Храним последние 50 точек цены
         priceHistory.push({ x: now, y: currentPrice });
-        if (priceHistory.length > 50) priceHistory.shift();
+        if (priceHistory.length > 60) priceHistory.shift(); // Храним последние 5 минут
 
         updateChart();
     } catch (e) { console.error("Ошибка Bybit:", e); }
 }
 
-// 3. Обновление графика
+// 3. Отрисовка всего на графике
 function updateChart() {
     const datasets = [];
 
-    // Добавляем линию реальной цены (основная)
+    // Реальная цена ETH
     datasets.push({
-        label: 'ETH Live Price',
+        label: 'ETH Live',
         data: priceHistory,
         borderColor: '#00ff88',
         borderWidth: 2,
@@ -83,14 +78,14 @@ function updateChart() {
         tension: 0.3
     });
 
-    // Добавляем линии твоих ордеров
+    // Твои ордера из базы
     orders.forEach((order, index) => {
         const start = new Date(order.timestamp).getTime();
         const end = new Date(order.expiryDate).getTime();
         const color = order.type === 'buy' ? '#00e5ff' : '#ff4444';
 
         datasets.push({
-            label: `Ордер #${index + 1} (${order.strikePrice}$)`,
+            label: `Ордер ${index + 1} ($${order.strikePrice})`,
             data: [
                 { x: start, y: order.strikePrice },
                 { x: end, y: order.strikePrice }
@@ -98,37 +93,44 @@ function updateChart() {
             borderColor: color,
             borderWidth: 2,
             borderDash: [5, 5],
-            pointRadius: 2,
-            fill: false
+            pointRadius: 2
         });
     });
 
     chart.data.datasets = datasets;
-    chart.update('none'); // 'none' чтобы не дергалась анимация при обновлении цены
+    chart.update('none');
 }
 
-// 4. Добавление ордера
+// 4. Отправка ордера на сервер (Исправлено для CORB/CORS)
 async function addOrderToServer(orderData) {
     try {
         updateStatus('Сохранение...');
-        await fetch(`${API_URL}/orders`, {
+        const response = await fetch(`${API_URL}/orders`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            mode: 'cors',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
             body: JSON.stringify(orderData)
         });
+
+        if (!response.ok) throw new Error('Ошибка записи');
         await loadOrders();
     } catch (error) {
         updateStatus('Ошибка сохранения.');
+        console.error(error);
     }
 }
 
-// 5. Очистка
+// 5. Очистка истории
 async function clearHistoryOnServer() {
-    if (!confirm('Удалить все сделки?')) return;
+    if (!confirm('Удалить всю историю сделок?')) return;
     try {
-        await fetch(`${API_URL}/orders`, { method: 'DELETE' });
+        await fetch(`${API_URL}/orders`, { method: 'DELETE', mode: 'cors' });
         orders = [];
         updateChart();
+        updateStatus('История очищена.');
     } catch (error) { updateStatus('Ошибка очистки.'); }
 }
 
@@ -136,14 +138,14 @@ function updateStatus(msg) {
     document.getElementById('status').innerText = msg;
 }
 
-// Кнопки
+// Обработчики кнопок
 document.getElementById('addOrderBtn').onclick = () => {
     const type = document.querySelector('input[name="type"]:checked').value;
     const strikePrice = parseFloat(document.getElementById('strikePrice').value);
     const expiryDate = document.getElementById('expiryDate').value;
 
     if (!strikePrice || !expiryDate) {
-        alert('Заполни все поля!');
+        alert('Заполни все данные!');
         return;
     }
 
@@ -157,9 +159,6 @@ document.getElementById('addOrderBtn').onclick = () => {
 
 document.getElementById('clearOrdersBtn').onclick = clearHistoryOnServer;
 
-// Инициализация
+// Старт
 loadOrders();
-setInterval(fetchCurrentPrice, 5000); // Обновляем цену каждые 5 сек
-
-// Стартовая загрузка при открытии страницы
-loadOrders();
+setInterval(fetchCurrentPrice, 5000);
