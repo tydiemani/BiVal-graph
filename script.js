@@ -13,21 +13,26 @@ const chart = new Chart(ctx, {
     options: {
         responsive: true,
         maintainAspectRatio: false,
-        scales: {
-            x: {
-                type: 'time', // Важно! Ость X теперь работает со временем
-                time: {
-                    unit: 'minute',
-                    displayFormats: { minute: 'HH:mm' }
-                },
-                title: { display: true, text: 'Время' },
-                grid: { color: 'rgba(255, 255, 255, 0.05)' }
+    scales: {
+        x: {
+            type: 'time',
+            time: {
+                unit: 'minute',
+                displayFormats: { minute: 'HH:mm' }
             },
-            y: {
-                title: { display: true, text: 'Цена ETH' },
-                grid: { color: 'rgba(255, 255, 255, 0.05)' }
-            }
+            // Это растянет график по времени
         },
+        y: {
+            // Убираем фиксированные 0 и 1. 
+            // График сам подстроится под цену ордера (например, 2200-2400)
+            beginAtZero: false, 
+            ticks: {
+                callback: function(value) {
+                    return '$' + value; // Добавим значок доллара для красоты
+                }
+            }
+        }
+    }
         plugins: {
             legend: { display: false }
         }
