@@ -4,7 +4,6 @@ let orders = [];
 let priceHistory = []; 
 const ctx = document.getElementById('dualChart');
 
-// Инициализация графика
 const chart = new Chart(ctx, {
     type: 'line',
     data: { datasets: [] },
@@ -23,9 +22,7 @@ const chart = new Chart(ctx, {
             y: {
                 beginAtZero: false, 
                 grid: { color: 'rgba(255, 255, 255, 0.05)' },
-                ticks: {
-                    callback: (value) => '$' + value
-                }
+                ticks: { callback: (value) => '$' + value }
             }
         },
         plugins: {
@@ -34,7 +31,6 @@ const chart = new Chart(ctx, {
     }
 });
 
-// 1. Загрузка ордеров с сервера
 async function loadOrders() {
     try {
         updateStatus('Синхронизация...');
@@ -48,26 +44,20 @@ async function loadOrders() {
     }
 }
 
-// 2. Живая цена с Bybit
 async function fetchCurrentPrice() {
     try {
         const response = await fetch("https://api.bybit.com/v5/market/tickers?category=spot&symbol=ETHUSDT");
         const result = await response.json();
         const currentPrice = parseFloat(result.result.list[0].lastPrice);
         const now = Date.now();
-
         priceHistory.push({ x: now, y: currentPrice });
-        if (priceHistory.length > 60) priceHistory.shift(); // Храним последние 5 минут
-
+        if (priceHistory.length > 60) priceHistory.shift(); 
         updateChart();
     } catch (e) { console.error("Ошибка Bybit:", e); }
 }
 
-// 3. Отрисовка всего на графике
 function updateChart() {
     const datasets = [];
-
-    // Реальная цена ETH
     datasets.push({
         label: 'ETH Live',
         data: priceHistory,
@@ -77,44 +67,32 @@ function updateChart() {
         fill: false,
         tension: 0.3
     });
-
-    // Твои ордера из базы
     orders.forEach((order, index) => {
         const start = new Date(order.timestamp).getTime();
         const end = new Date(order.expiryDate).getTime();
         const color = order.type === 'buy' ? '#00e5ff' : '#ff4444';
-
         datasets.push({
             label: `Ордер ${index + 1} ($${order.strikePrice})`,
-            data: [
-                { x: start, y: order.strikePrice },
-                { x: end, y: order.strikePrice }
-            ],
+            data: [{ x: start, y: order.strikePrice }, { x: end, y: order.strikePrice }],
             borderColor: color,
             borderWidth: 2,
             borderDash: [5, 5],
             pointRadius: 2
         });
     });
-
     chart.data.datasets = datasets;
     chart.update('none');
 }
 
-// 4. Отправка ордера на сервер (Исправлено для CORB/CORS)
 async function addOrderToServer(orderData) {
     try {
         updateStatus('Сохранение...');
         const response = await fetch(`${API_URL}/orders`, {
             method: 'POST',
             mode: 'cors',
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-            },
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
             body: JSON.stringify(orderData)
         });
-
         if (!response.ok) throw new Error('Ошибка записи');
         await loadOrders();
     } catch (error) {
@@ -123,7 +101,6 @@ async function addOrderToServer(orderData) {
     }
 }
 
-// 5. Очистка истории
 async function clearHistoryOnServer() {
     if (!confirm('Удалить всю историю сделок?')) return;
     try {
@@ -134,21 +111,13 @@ async function clearHistoryOnServer() {
     } catch (error) { updateStatus('Ошибка очистки.'); }
 }
 
-function updateStatus(msg) {
-    document.getElementById('status').innerText = msg;
-}
+function updateStatus(msg) { document.getElementById('status').innerText = msg; }
 
-// Обработчики кнопок
 document.getElementById('addOrderBtn').onclick = () => {
     const type = document.querySelector('input[name="type"]:checked').value;
     const strikePrice = parseFloat(document.getElementById('strikePrice').value);
     const expiryDate = document.getElementById('expiryDate').value;
-
-    if (!strikePrice || !expiryDate) {
-        alert('Заполни все данные!');
-        return;
-    }
-
+    if (!strikePrice || !expiryDate) return alert('Заполни все данные!');
     addOrderToServer({
         timestamp: new Date().toISOString(),
         type: type,
@@ -158,7 +127,5 @@ document.getElementById('addOrderBtn').onclick = () => {
 };
 
 document.getElementById('clearOrdersBtn').onclick = clearHistoryOnServer;
-
-// Старт
 loadOrders();
 setInterval(fetchCurrentPrice, 5000);
