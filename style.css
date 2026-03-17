@@ -1,50 +1,45 @@
-body {background-color: #1a1a2e;
-      color:aliceblue;
-      font-family: sans-serif;
+* { box-sizing: border-box; }
+body {
+    margin: 0;
+    padding: 0;
+    font-family: Arial, sans-serif;
+    background-color: #121212;
+    color: #e0e0e0;
 }
 
-#eth-graph {
-    border: 2px dashed #8e44ad;
-    padding: 50px;
-    text-align: center;
-    margin-top: 20px;
+.main-container {
+    display: flex; /* Сетка для разделения экрана */
+    height: 100vh;
 }
 
-button {
-    padding: 10px 20px;
-    cursor:pointer;
-    font-weight: Bold;
-    border: none;
-    border-radius: 5px;
-    margin: 10px;
-}
-
-#buy-low {
-    background-color: lightgreen;
-    color:black;
-}
-
-#sell-high{
-    background-color: lightcoral;
-    color: black;
-}
-
-.controls{
-    text-align: center;
-}
-
-#eth-graph {
-    width: 90%;        
-    max-width: 1200px;   
-    height: 500px;      
-    margin: 20px auto;   
-    background: #1e1e3f; 
+/* Секция графика - занимает 2/3 ширины */
+.chart-section {
+    flex: 2;
     padding: 20px;
-    border-radius: 15px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    border-right: 1px solid #333;
 }
 
-canvas {
+/* Секция управления - занимает 1/3 ширины */
+.control-section {
+    flex: 1;
+    padding: 30px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* Стили для Chart.js */
+#dualChart {
     width: 100% !important;
     height: 100% !important;
 }
+
+/* Стили элементов формы */
+.input-group { display: flex; flex-direction: column; gap: 5px; }
+input { padding: 10px; border: 1px solid #333; background: #1e1e1e; color: #fff; }
+.radio-group { display: flex; gap: 15px; }
+button { padding: 12px; cursor: pointer; border: none; font-weight: bold; background-color: #00ff88; color: #000; }
+button:hover { background-color: #00cc6a; }
+.btn-danger { background-color: #ff4444; color: #fff; margin-top: auto;}
+.btn-danger:hover { background-color: #cc3333; }
+#status { font-size: 0.9em; color: #aaa; }
